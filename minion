@@ -1,36 +1,18 @@
-##### Primary configuration settings #####
-##########################################
-# This configuration file is used to manage the behavior of the Salt Minion.
-# With the exception of the location of the Salt Master Server, values that are
-# commented out but have an empty line after the comment are defaults that need
-# not be set in the config. If there is no blank line after the comment, the
-# value is presented as an example and is not the default.
-
-######
-# WARNING!!! This file is managed by salt, and changes will be over written.
-# Documentation on the below values can be found at
-# https://docs.saltstack.com/en/latest/ref/configuration/minion.html
-######
-
 master_type: disable
-
-states_dirs:
-  - /opt/itco-salt/salt/_states
-
-grains_dirs:
-  - /opt/itco-salt/salt/_grains
-
-module_dirs:
-  - /opt/itco-salt/salt/_modules
 
 file_client: local
 
 file_roots:
   base:
-    - /opt/itco-salt/salt
+    - /Users/wes/Downloads/salt-psu
 
-state_output_diff: True
+states_dirs:
+  - /Users/wes/Downloads/salt-psu/_states
+
+grains_dirs:
+  - /Users/wes/Downloads/salt-psu/_grains
+
+module_dirs:
+  - /Users/wes/Downloads/salt-psu/_modules
 
 multiprocessing: False
-
-mine_enabled: False
