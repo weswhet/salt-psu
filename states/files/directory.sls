@@ -9,4 +9,3 @@ create_just_a_directory:
     - recurse:
       - user
       - group
-      - mode
