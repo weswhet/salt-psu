@@ -1,5 +1,5 @@
 # init all states in this directory
 
 include:
-  - .files
+  - .files # or states/files
   - .softwareupdates
