@@ -20,3 +20,5 @@ pillar_roots:
     - /srv/salt-psu/_pillars
 
 multiprocessing: False
+
+log_level: debug
