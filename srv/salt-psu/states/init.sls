@@ -4,3 +4,4 @@ include:
   - .files # or states/files
   - .softwareupdates
   - .prefs
+  - .schedule
