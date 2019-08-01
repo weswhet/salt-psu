@@ -41,3 +41,7 @@ sudo salt-call state.apply states/files/file-example
 sudo salt-call state.highstate
 ```
 
+The logging level can be changed in the /etc/salt/minion
+
+Logs can be viewed at /var/log/salt/minion
+
