@@ -16,11 +16,11 @@ $ cp minion /etc/salt/minion
 make /srv directory
 
 ``` bash
-$ sudo mkdir /srv
+$ sudo mkdir -p /opt/srv
 ```
 
 ``` bash
-$ sudo cp -R srv/ /srv/
+$ sudo cp -R srv/ /opt/srv/
 ```
 
 ``` bash

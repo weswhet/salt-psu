@@ -4,21 +4,21 @@ file_client: local
 
 file_roots:
   base:
-    - /srv/salt-psu
+    - /opt/srv/salt-psu
 
 states_dirs:
-  - /srv/salt-psu/_states
+  - /opt/srv/salt-psu/_states
 
 grains_dirs:
-  - /srv/salt-psu/_grains
+  - /opt/srv/salt-psu/_grains
 
 module_dirs:
-  - /srv/salt-psu/_modules
+  - /opt/srv/salt-psu/_modules
 
 pillar_roots:
   base:
-    - /srv/salt-psu/_pillars
+    - /opt/srv/salt-psu/_pillars
 
-multiprocessing: False
+multiprocessing: True
 
 log_level: debug
