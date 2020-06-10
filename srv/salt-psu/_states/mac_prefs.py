@@ -74,7 +74,7 @@ def write(name, value, domain, user=None, host=None, runas=None):
            'result': True,
            'changes': {},
            'comment': ''}
-
+ 
     # get our current value.
     old_value = __salt__['prefs.read'](name, domain, user, host, runas)
 

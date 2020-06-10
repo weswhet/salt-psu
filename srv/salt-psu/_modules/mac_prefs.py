@@ -52,16 +52,12 @@ def _convert_pyobjc_objects(pref):
     writing those out, so this function will convert NSDictionary and NSArray
     object to normal list and dictionary python objects.
     '''
-    log.trace('Type of [{0}] before conversion is [{1}]'.format(pref,
-                                                                type(pref)))
     if isinstance(pref, Foundation.NSDate):
         log.debug('mac_prefs._convert_pyobjc_objects - '
                   'converting "{}" NSDate to string...'.format(pref))
         return str(pref)
-    pref = Conversion.pythonCollectionFromPropertyList(pref)
-    log.trace('Type of [{0}] after conversion is [{1}]'.format(pref,
-                                                               type(pref)))
-    return pref
+
+    return Conversion.pythonCollectionFromPropertyList(pref)
 
 
 def _get_user_and_host(user, host):
@@ -113,6 +109,7 @@ def _read_pref(name, domain, user, host, runas):
 
     if user:
         user_domain, host_domain = _get_user_and_host(user, host)
+        log.debug('Reading key: "{}" in domain: "{}"'.format(name, domain))
         value = Foundation.CFPreferencesCopyValue(name,
                                                   domain,
                                                   user_domain,
@@ -123,8 +120,7 @@ def _read_pref(name, domain, user, host, runas):
     #need to bring ourselves back up to root
     path = '/var/root/Library/Preferences/'
     d_path = os.path.join(path, domain)
-    log.debug('Reading key: "{}" in'
-              ' domain: "{}" at "{}"'.format(name, domain, d_path))
+    log.debug('Reading key: "{}" in domain: "{}" at "{}"'.format(name, domain, d_path))
     return Foundation.CFPreferencesCopyAppValue(name, domain)
 
 
@@ -276,12 +272,21 @@ def set_(name, value, domain, user=None, host=None, runas=None):
 
 def list_(name, user, host, runas=None, values=False):
     '''
-    List all Keys in the given doamin.
+    List all Keys in the given domain.
 
     name
         The preference domain to get keys from.
 
-    value
+    user
+        The user domain to use, either 'current' or 'any'
+
+    host
+        The host domain to use, either 'current' or 'any'
+
+    runas
+        The user to run as should be a short username.
+
+    values
         Pass true to return a dictionary of the key value pairs.
 
     :rtype: list,dict
@@ -290,8 +295,8 @@ def list_(name, user, host, runas=None, values=False):
 
     .. code-block:: bash
 
-        salt '*' prefs.list com.apple.ScreenSaver
-        salt '*' prefs.list com.apple.ScreenSaver True
+        salt '*' prefs.list com.apple.RemoteManagement any any values=True
+        salt '*' prefs.list com.apple.ScreenSaver current current runas=deadb33f
     '''
 
     log.debug('Gathering Key List for {}'.format(name))
@@ -319,7 +324,8 @@ def list_(name, user, host, runas=None, values=False):
         os.seteuid(uid)
     key_list = Foundation.CFPreferencesCopyKeyList(name, user_domain, host_domain)
     os.seteuid(0)
-    con_key_list = _convert_pyobjc_objects(key_list)
+    con_key_list = _convert_pyobjc_objects(key_list) or []
+    log.debug('Key list: "{}"'.format(con_key_list))
     if not values:
         return con_key_list
 
@@ -328,7 +334,9 @@ def list_(name, user, host, runas=None, values=False):
     try:
         for item in con_key_list:
             value_dict[item] = read(item, name, user, host, runas)
-    except TypeError:
+    except TypeError as exception:
         return None
+
+    log.debug('Values List: "{}"'.format(value_dict))
 
     return value_dict
