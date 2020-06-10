@@ -14,10 +14,12 @@ import logging
 import sys
 import os
 import pwd
+import multiprocessing
 # salt libs
 import salt.utils
 import salt.utils.platform
 from salt.exceptions import CommandExecutionError
+
 
 log = logging.getLogger(__name__)
 
@@ -89,7 +91,7 @@ def _get_user_and_host(user, host):
     return (user_pref, host_pref)
 
 
-def _read_pref(name, domain, user, host, runas):
+def _read_pref(name, domain, user, host, runas, runas_data):
     '''
     helper function for reading the preference, either at the user level
     or system level
@@ -105,7 +107,7 @@ def _read_pref(name, domain, user, host, runas):
             )
         # need to run as the user
         log.debug('Setting EUID to {}'.format(runas))
-        os.seteuid(uid)
+        os.setuid(uid)
 
     if user:
         user_domain, host_domain = _get_user_and_host(user, host)
@@ -114,8 +116,9 @@ def _read_pref(name, domain, user, host, runas):
                                                   domain,
                                                   user_domain,
                                                   host_domain)
-        os.seteuid(0)
-        return value
+        if runas:
+            runas_data.put(value)
+        return
 
     #need to bring ourselves back up to root
     path = '/var/root/Library/Preferences/'
@@ -124,7 +127,7 @@ def _read_pref(name, domain, user, host, runas):
     return Foundation.CFPreferencesCopyAppValue(name, domain)
 
 
-def _set_pref(name, value, domain, user, host, runas):
+def _set_pref(name, value, domain, user, host, runas, runas_data):
     '''
     sets the pref for the user not at the app value level
     returns true or false if the preference was set correctly or not.
@@ -139,8 +142,8 @@ def _set_pref(name, value, domain, user, host, runas):
                 ' does not exist.'.format(runas)
             )
         # need to run as the user
-        log.debug('Setting EUID to {}'.format(runas))
-        os.seteuid(uid)
+        log.debug('Setting UID to {}'.format(runas))
+        os.setuid(uid)
     if user:
         pref_user, pref_host = _get_user_and_host(user, host)
         path = '/Library/Preferences/'
@@ -154,7 +157,6 @@ def _set_pref(name, value, domain, user, host, runas):
                                                        pref_user,
                                                        pref_host)
             Foundation.CFPreferencesAppSynchronize(domain)
-            os.seteuid(0)
             return set_val
         except BaseException:
             log.warning('prefs._set_pref caught exception on user set.')
@@ -166,7 +168,8 @@ def _set_pref(name, value, domain, user, host, runas):
     Foundation.CFPreferencesSetAppValue(name, value, domain)
     return Foundation.CFPreferencesAppSynchronize(domain)
 
-def read(name, domain, user=None, host=None, runas=None):
+
+def read(name, domain, user=None, host=None, runas=None, runas_data=None):
     '''
     Read a preference using CFPreferences.
 
@@ -208,10 +211,11 @@ def read(name, domain, user=None, host=None, runas=None):
                                               domain,
                                               user,
                                               host,
-                                              runas))
+                                              runas,
+                                              runas_data))
 
 
-def set_(name, value, domain, user=None, host=None, runas=None):
+def set_(name, value, domain, user=None, host=None, runas=None, runas_data=None):
     '''
     Set a preference value using CFPreferences.
 
@@ -254,10 +258,21 @@ def set_(name, value, domain, user=None, host=None, runas=None):
         raise CommandExecutionError(
             'If using "host" or "user" you must specify both not just one.'
         )
-    set_val = _set_pref(name, value, domain, user, host, runas)
+    if runas:
+        multiprocessing.set_start_method('spawn')
+        proc = multiprocessing.Process(target=_set_pref, args=(name, value, domain, user, host, runas, runas_data))
+        proc.start()
+    else:
+        set_val = _set_pref(name, value, domain, user, host, runas, runas_data)
 
     # get the value to check if it was set correctly.
-    new_val = read(name, domain, user, host, runas)
+    if runas:
+        runas_data = multiprocessing.Queue()
+        proc = multiprocessing.Process(target=read, args=(name, value, domain, user, host, runas, runas_data))
+        proc.start()
+        new_val = runas_data.get()
+    else:
+        new_val = read(name, domain, user, host, runas, runas_data)
 
     log.debug('New value for key: "{}" in domain: '
               '"{}" is "{}"'.format(name, domain, new_val))
